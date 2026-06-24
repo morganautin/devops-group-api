@@ -142,6 +142,15 @@ pipeline {
                 '''
             }
         }
+
+        stage('Smoke Test') {
+            steps {
+                sh '''
+                    sleep 10
+                    curl -f http://devops-group-api-staging:8000/health
+                '''
+            }
+        }
     }
 
     post {
@@ -153,7 +162,7 @@ pipeline {
         }
 
         success {
-            echo "Pipeline réussi ! Image publiée et staging déployé : ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "Pipeline réussi ! Image publiée, staging déployé et smoke test OK : ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
         }
 
         failure {
