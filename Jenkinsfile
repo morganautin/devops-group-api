@@ -103,6 +103,43 @@ pipeline {
                 }
             }
         }
+
+        stage('IaC Apply') {
+            steps {
+                sh '''
+                    docker run --rm \
+                        -v "$PWD":/workspace \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -w /workspace/infra \
+                        hashicorp/terraform:latest init
+
+                    docker run --rm \
+                        -v "$PWD":/workspace \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -w /workspace/infra \
+                        hashicorp/terraform:latest fmt -check
+
+                    docker run --rm \
+                        -v "$PWD":/workspace \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -w /workspace/infra \
+                        hashicorp/terraform:latest validate
+
+                    docker run --rm \
+                        -v "$PWD":/workspace \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -w /workspace/infra \
+                        hashicorp/terraform:latest apply -auto-approve \
+                        -var="image_name=${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+                    docker run --rm \
+                        -v "$PWD":/workspace \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        -w /workspace/infra \
+                        hashicorp/terraform:latest output
+                '''
+            }
+        }
     }
 
     post {
@@ -114,7 +151,7 @@ pipeline {
         }
 
         success {
-            echo "Pipeline réussi ! Image publiée : ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+            echo "Pipeline réussi ! Image publiée et staging déployé : ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
         }
 
         failure {
