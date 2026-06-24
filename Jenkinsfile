@@ -107,6 +107,8 @@ pipeline {
         stage('IaC Apply') {
     steps {
         sh '''
+            docker rm -f devops-group-api-staging || true
+
             docker run --rm \
                 --volumes-from jenkins \
                 -v /var/run/docker.sock:/var/run/docker.sock \
@@ -139,6 +141,7 @@ pipeline {
                 hashicorp/terraform:latest output
         '''
     }
+}
 }
     }
 
