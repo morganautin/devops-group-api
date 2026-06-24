@@ -105,41 +105,41 @@ pipeline {
         }
 
         stage('IaC Apply') {
-            steps {
-                sh '''
-                    docker run --rm \
-                        -v "$PWD":/workspace \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        -w /workspace/infra \
-                        hashicorp/terraform:latest init
+    steps {
+        sh '''
+            docker run --rm \
+                --volumes-from jenkins \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                -w "$PWD/infra" \
+                hashicorp/terraform:latest init
 
-                    docker run --rm \
-                        -v "$PWD":/workspace \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        -w /workspace/infra \
-                        hashicorp/terraform:latest fmt -check
+            docker run --rm \
+                --volumes-from jenkins \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                -w "$PWD/infra" \
+                hashicorp/terraform:latest fmt -check
 
-                    docker run --rm \
-                        -v "$PWD":/workspace \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        -w /workspace/infra \
-                        hashicorp/terraform:latest validate
+            docker run --rm \
+                --volumes-from jenkins \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                -w "$PWD/infra" \
+                hashicorp/terraform:latest validate
 
-                    docker run --rm \
-                        -v "$PWD":/workspace \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        -w /workspace/infra \
-                        hashicorp/terraform:latest apply -auto-approve \
-                        -var="image_name=${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+            docker run --rm \
+                --volumes-from jenkins \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                -w "$PWD/infra" \
+                hashicorp/terraform:latest apply -auto-approve \
+                -var="image_name=${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
 
-                    docker run --rm \
-                        -v "$PWD":/workspace \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        -w /workspace/infra \
-                        hashicorp/terraform:latest output
-                '''
-            }
-        }
+            docker run --rm \
+                --volumes-from jenkins \
+                -v /var/run/docker.sock:/var/run/docker.sock \
+                -w "$PWD/infra" \
+                hashicorp/terraform:latest output
+        '''
+    }
+}
     }
 
     post {
