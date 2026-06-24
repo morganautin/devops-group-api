@@ -33,6 +33,8 @@ pipeline {
 
                     docker start -a devops-group-api-test
                     docker cp devops-group-api-test:/app/coverage.xml coverage.xml
+
+                    sed -i 's#/app/src#src#g' coverage.xml || true
                 '''
             }
         }
@@ -55,6 +57,20 @@ pipeline {
                 }
             }
         }
+
+        stage('Security Scan') {
+            steps {
+                sh '''
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        aquasec/trivy:latest image \
+                        --severity HIGH,CRITICAL \
+                        --no-progress \
+                        --exit-code 0 \
+                        ${IMAGE_NAME}:test
+                '''
+            }
+        }
     }
 
     post {
@@ -66,7 +82,7 @@ pipeline {
         }
 
         success {
-            echo 'Pipeline réussi : lint, build, tests et analyse SonarQube OK.'
+            echo 'Pipeline réussi : lint, build, tests, SonarQube et scan Trivy OK.'
         }
 
         failure {
