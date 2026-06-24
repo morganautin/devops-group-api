@@ -3,13 +3,21 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'devops-group-api'
+        REGISTRY = 'ghcr.io/morganautin'
     }
 
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
+                script {
+                    env.IMAGE_TAG = sh(
+                        script: 'git rev-parse --short HEAD',
+                        returnStdout: true
+                    ).trim()
+                }
                 sh 'git rev-parse --short HEAD'
+                echo "Image tag : ${env.IMAGE_TAG}"
             }
         }
 
@@ -71,6 +79,30 @@ pipeline {
                 '''
             }
         }
+
+        stage('Push') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'github-token',
+                        usernameVariable: 'GHCR_USER',
+                        passwordVariable: 'GHCR_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+
+                        docker tag ${IMAGE_NAME}:test ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+                        docker tag ${IMAGE_NAME}:test ${REGISTRY}/${IMAGE_NAME}:latest
+
+                        docker push ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
+                        docker push ${REGISTRY}/${IMAGE_NAME}:latest
+
+                        docker logout ghcr.io
+                    '''
+                }
+            }
+        }
     }
 
     post {
@@ -82,7 +114,7 @@ pipeline {
         }
 
         success {
-            echo 'Pipeline réussi : lint, build, tests, SonarQube et scan Trivy OK.'
+            echo "Pipeline réussi ! Image publiée : ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
         }
 
         failure {
