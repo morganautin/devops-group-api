@@ -16,10 +16,11 @@ pipeline {
         stage('Lint') {
             steps {
                 sh '''
-                    python3 -m venv .venv
-                    . .venv/bin/activate
-                    pip install -r requirements.txt
-                    python -m flake8 src tests
+                    docker run --rm \
+                        -v "$PWD":/app \
+                        -w /app \
+                        python:3.11-slim \
+                        sh -c "pip install --no-cache-dir -r requirements.txt && python -m flake8 src tests"
                 '''
             }
         }
