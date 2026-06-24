@@ -16,11 +16,8 @@ pipeline {
         stage('Lint') {
             steps {
                 sh '''
-                    docker run --rm \
-                        -v "$PWD":/app \
-                        -w /app \
-                        python:3.11-slim \
-                        sh -c "pip install --no-cache-dir -r requirements.txt && python -m flake8 src tests"
+                    docker build -t ${IMAGE_NAME}:lint .
+                    docker run --rm ${IMAGE_NAME}:lint python -m flake8 src tests
                 '''
             }
         }
@@ -29,7 +26,13 @@ pipeline {
             steps {
                 sh '''
                     docker build -t ${IMAGE_NAME}:test .
-                    docker run --rm ${IMAGE_NAME}:test python -m pytest --cov=src --cov-report=xml
+
+                    docker rm -f devops-group-api-test || true
+                    docker create --name devops-group-api-test ${IMAGE_NAME}:test \
+                        python -m pytest --cov=src --cov-report=xml
+
+                    docker start -a devops-group-api-test
+                    docker cp devops-group-api-test:/app/coverage.xml coverage.xml
                 '''
             }
         }
